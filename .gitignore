@@ -8,6 +8,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# model
+*.h5
+
+
 # C extensions
 *.so
 
@@ -47,6 +51,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+workspace.xml
 *,cover
 .hypothesis/
 
