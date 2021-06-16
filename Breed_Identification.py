@@ -1,31 +1,19 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-import os
-import matplotlib.pyplot as plt
-import cv2
-import pickle
-
-from tensorflow import keras
-from keras.preprocessing.image import ImageDataGenerator as Imgen
-from os.path import join
-from keras.applications.nasnet import NASNetLarge
 from keras.applications.inception_resnet_v2 import InceptionResNetV2
-from keras.models import Sequential, load_model
-from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, Dropout
-from keras.preprocessing import image
+from keras.layers import Dense, GlobalAveragePooling2D, Dropout
+from keras.models import Sequential
+from keras.preprocessing.image import ImageDataGenerator as Imgen
+from tensorflow import keras
+
 
 NUM_CLASSES = 10
 IMAGE_SIZE = 150
 BATCH_SIZE = 32
-NUM_EPOCHS = 10
+NUM_EPOCHS = 5
 VALIDATION_SPLIT = 0.2
 
-data_dir = 'input/'
-labels = pandas.read_csv(join(data_dir, 'labels.csv'))
-sample = pandas.read_csv(join(data_dir, 'sample_submission.csv'))
-
-
-# print(labels.head())
 
 def app_jpg(id):
     return id + ".jpg"
@@ -40,8 +28,11 @@ def plot_images(img, labels):
         plt.axis('off')
 
 
+labels_path = 'input/labels.csv'
+train_path = 'input/train'
+
+labels = pandas.read_csv(labels_path)
 labels['id'] = labels['id'].apply(app_jpg)
-sample['id'] = sample['id'].apply(app_jpg)
 
 datagen = Imgen(preprocessing_function=keras.applications.nasnet.preprocess_input,
                 shear_range=0.2,
@@ -50,9 +41,9 @@ datagen = Imgen(preprocessing_function=keras.applications.nasnet.preprocess_inpu
                 validation_split=VALIDATION_SPLIT
                 )
 
-train_ds = datagen.flow_from_dataframe(
+train_dataset = datagen.flow_from_dataframe(
     labels,
-    directory='input/train',
+    directory=train_path,
     x_col='id',
     y_col='breed',
     subset="training",
@@ -64,9 +55,9 @@ train_ds = datagen.flow_from_dataframe(
     seed=123,
 )
 
-val_ds = datagen.flow_from_dataframe(
+validation_dataset = datagen.flow_from_dataframe(
     labels,
-    directory='input/train',
+    directory=train_path,
     x_col='id',
     y_col='breed',
     subset="validation",
@@ -78,11 +69,11 @@ val_ds = datagen.flow_from_dataframe(
     seed=123,
 )
 
-a = train_ds.class_indices
+a = train_dataset.class_indices
 class_names = list(a.keys())
 class_names[:NUM_CLASSES]
 
-x, y = next(train_ds)
+x, y = next(train_dataset)
 x.shape
 plot_images(x, y)
 
@@ -94,12 +85,9 @@ base_model.trainable = False
 
 model = Sequential([
     base_model,
-
     GlobalAveragePooling2D(),
-
     Dense(256, activation='relu'),
     Dropout(0.5),
-
     Dense(120, activation='softmax')
 ])
 # model.summary()
@@ -108,7 +96,7 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 my_calls = [keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=2),
             keras.callbacks.ModelCheckpoint("Model.h5", verbose=1, save_best_only=True)]
 
-hist = model.fit(train_ds, epochs=NUM_EPOCHS, validation_data=val_ds, callbacks=my_calls)
+hist = model.fit(train_dataset, epochs=NUM_EPOCHS, validation_data=validation_dataset, callbacks=my_calls)
 
 plt.figure(figsize=(15, 6))
 
