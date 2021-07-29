@@ -6,13 +6,11 @@ from keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from keras.models import Sequential
 from keras.preprocessing.image import ImageDataGenerator as Imgen
 from tensorflow import keras
-from keras.models import load_model
 
-
-NUM_CLASSES = 10
-IMAGE_SIZE = 150
+NUM_CLASSES = 120
+IMAGE_SIZE = 200
 BATCH_SIZE = 32
-NUM_EPOCHS = 5
+NUM_EPOCHS = 80
 VALIDATION_SPLIT = 0.2
 
 
@@ -29,13 +27,13 @@ def plot_images(img, labels):
         plt.axis('off')
 
 
-def check_images(img):
-    plt.figure(figsize=[25, 10])
-    for i in range(25):
-        plt.subplot(5, 5, i + 1)
-        plt.imshow(img[i])
-        plt.title(class_names[pred[i]])
-        plt.axis('off')
+# def check_images(img):
+#     plt.figure(figsize=[25, 10])
+#     for i in range(25):
+#         plt.subplot(5, 5, i + 1)
+#         plt.imshow(img[i])
+#         plt.title(class_names[pred[i]])
+#         plt.axis('off')
 
 
 test_path = 'input/test'
@@ -92,7 +90,7 @@ x.shape
 plot_images(x, y)
 
 base_model = InceptionResNetV2(include_top=False,
-                               weights='imagenet',
+                               weights=None,
                                input_shape=(IMAGE_SIZE, IMAGE_SIZE, 3)
                                )
 base_model.trainable = False
@@ -101,13 +99,15 @@ model = Sequential([
     base_model,
     GlobalAveragePooling2D(),
     Dense(256, activation='relu'),
-    Dropout(0.5),
+    Dropout(0.3),
+    Dense(256, activation='relu'),
+    Dropout(0.3),
     Dense(120, activation='softmax')
 ])
 model.summary()
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-my_calls = [keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=2),
+my_calls = [keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=7),
             keras.callbacks.ModelCheckpoint("Model.h5", verbose=1, save_best_only=True)]
 
 hist = model.fit(train_dataset, epochs=NUM_EPOCHS, validation_data=validation_dataset, callbacks=my_calls)
